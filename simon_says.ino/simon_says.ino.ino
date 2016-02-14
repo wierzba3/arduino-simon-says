@@ -30,6 +30,9 @@ enum Mode
 Mode mode;
 
 
+Game game;
+
+
 void setup() 
 {
   Serial.begin(9600);
@@ -69,6 +72,7 @@ void loop()
 
 void getUserInput()
 {
+  Serial.println("User input...");
   redState = digitalRead(redButton);
   greenState = digitalRead(greenButton);
   yellowState = digitalRead(yellowButton);
@@ -78,13 +82,65 @@ void getUserInput()
   if(greenState == HIGH) Serial.println("Green pressed");
   if(yellowState == HIGH) Serial.println("Yellow pressed");
   if(blueState == HIGH) Serial.println("Blue pressed");
-  delay(100);
+
+  //for now, lets assume the input is correct, light success button, and chnage state to DISPLAY_SERIES;
+
+  //blink the success light 5 times
+  for(int i = 0; i < 5; i++)
+  {
+    digitalWrite(successPin, HIGH);
+    delay(200);
+    digitalWrite(successPin, LOW);
+    delay(200);
+  }
+  
+  
+  delay(1);
 }
 
 void displayColorSeries()
 {
   Serial.print("Display...");
   //TODO display the randomly generated series of lights
-  mode = USER_INPUT;
+
+  game.nextLevel();
+  vector<Button> lightSeries = game.getLightSeries();
+
+  Serial.print("Randomly generated series: ");
+  for(int i = 0; i < lightSeries.size(); i++)
+  {
+    Serial.print(lightSeries[i]);
+    Serial.print(", ");
+    switch(lightSeries[i])
+    {
+      case RED: 
+        digitalWrite(redPin, HIGH);
+        break;
+      case GREEN: 
+        digitalWrite(greenPin, HIGH);
+        break;
+      case YELLOW: 
+        digitalWrite(yellowPin, HIGH);
+        break;
+      case BLUE: 
+        digitalWrite(bluePin, HIGH);
+        break;
+    }
+    delay(600);
+    digitalWrite(bluePin, LOW);
+    digitalWrite(yellowPin, LOW);
+    digitalWrite(greenPin, LOW);
+    digitalWrite(redPin, LOW);
+    delay(600);
+  }
+  Serial.println("");
+  
+
+
+  
+  mode = USER_INPUT; 
   delay(1);
 }
+
+
+
