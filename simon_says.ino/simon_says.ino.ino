@@ -1,6 +1,10 @@
 #include <StandardCplusplus.h>
-
 #include "game.h"
+
+/*
+ * TODO
+ * - game not resetting after game over, it appears the lightSeries is not being regenerated
+ */
 
 using namespace std;
 
@@ -32,6 +36,26 @@ Mode mode;
 
 Game game;
 
+void test()
+{
+  vector<Button> inp = game.getButtonInputSeries();
+  Serial.print("Input: [");
+  for(int i = 0; i < inp.size(); i++)
+  {
+    Serial.print(inp[i]);
+    Serial.print(", ");
+  }
+  Serial.println("]");
+  
+  vector<Button> lights = game.getLightSeries();
+  Serial.print("Lights: [");
+  for(int i = 0; i < lights.size(); i++)
+  {
+    Serial.print(lights[i]);
+    Serial.print(", ");
+  }
+  Serial.println("]");
+}
 
 void setup() 
 {
@@ -54,37 +78,26 @@ void setup()
   digitalWrite(successPin, LOW);
   digitalWrite(redButton, HIGH);
 
-
   mode = DISPLAY_SERIES;
 }
 
-
-
-void loop() 
+void gameOver()
 {
-  switch(mode)
+  Serial.println("Game over!");
+  game.resetGame();
+  //blink the fail light 5 times
+  for(int i = 0; i < 5; i++)
   {
-    case USER_INPUT: getUserInput();
-    case DISPLAY_SERIES: displayColorSeries();
+    digitalWrite(failPin, HIGH);
+    delay(200);
+    digitalWrite(failPin, LOW);
+    delay(200);
   }
-
+  setAllLightsOn(false);
+  mode = DISPLAY_SERIES;
 }
-
-void getUserInput()
+void displaySuccess()
 {
-  Serial.println("User input...");
-  redState = digitalRead(redButton);
-  greenState = digitalRead(greenButton);
-  yellowState = digitalRead(yellowButton);
-  blueState = digitalRead(blueButton);
-  
-  if(redState == HIGH) Serial.println("Red pressed");
-  if(greenState == HIGH) Serial.println("Green pressed");
-  if(yellowState == HIGH) Serial.println("Yellow pressed");
-  if(blueState == HIGH) Serial.println("Blue pressed");
-
-  //for now, lets assume the input is correct, light success button, and chnage state to DISPLAY_SERIES;
-
   //blink the success light 5 times
   for(int i = 0; i < 5; i++)
   {
@@ -93,24 +106,112 @@ void getUserInput()
     digitalWrite(successPin, LOW);
     delay(200);
   }
-  
+}
+
+void getUserInput()
+{ 
+  redState = digitalRead(redButton);
+  greenState = digitalRead(greenButton);
+  yellowState = digitalRead(yellowButton);
+  blueState = digitalRead(blueButton);
+
+  if(redState == HIGH)
+  {
+    Serial.println("Red pressed");
+    //light the LED to indicate to the user the button is pressed
+    digitalWrite(redPin, HIGH);
+    //wait for the button to be depressed
+    while(digitalRead(redButton) == HIGH) { delay(10); } 
+    //turn the LED light off after the user stops pressing the button
+    digitalWrite(redPin, LOW);
+    
+    if(!game.insertInput(RED))
+    {
+      gameOver();
+      return;
+    }
+
+  }
+  else if(greenState == HIGH)
+  {
+    Serial.println("Green pressed");
+    //light the LED to indicate to the user the button is pressed
+    digitalWrite(greenPin, HIGH);
+    //wait for the button to be depressed
+    while(digitalRead(greenButton) == HIGH) { delay(10); } 
+    //turn the LED light off after the user stops pressing the button
+    digitalWrite(greenPin, LOW);
+    
+    if(!game.insertInput(GREEN))
+    {
+      gameOver();
+      return;
+    }
+
+  }
+  else if(yellowState == HIGH)
+  {
+    Serial.println("Yellow pressed");
+    //light the LED to indicate to the user the button is pressed
+    digitalWrite(yellowPin, HIGH);
+    //wait for the button to be depressed
+    while(digitalRead(yellowButton) == HIGH) { delay(10); } 
+    //turn the LED light off after the user stops pressing the button
+    digitalWrite(yellowPin, LOW);
+    
+    if(!game.insertInput(YELLOW))
+    {
+      gameOver();
+      return;
+    }
+
+  }
+  else if(blueState == HIGH)
+  {
+    Serial.println("Blue pressed");
+    
+    //light the LED to indicate to the user the button is pressed
+    digitalWrite(bluePin, HIGH);
+    //wait for the button to be depressed
+    while(digitalRead(blueButton) == HIGH) { delay(10); } 
+    //turn the LED light off after the user stops pressing the button
+    digitalWrite(bluePin, LOW);
+    
+    if(!game.insertInput(BLUE))
+    {
+      gameOver();
+      return;
+    }
+
+  }
+
+  //TODO check if the input matches the current light series
+  if(game.isInputCorrect())
+  {
+    Serial.println("The input was correct!");
+    displaySuccess();
+    mode = DISPLAY_SERIES;
+    delay(500);
+  }
+
+  //for now, lets assume the input is correct, light success button, and chnage state to DISPLAY_SERIES;
+  //displaySuccess();
   
   delay(1);
 }
 
 void displayColorSeries()
 {
-  Serial.print("Display...");
+  Serial.println("Display...");
   //TODO display the randomly generated series of lights
 
   game.nextLevel();
   vector<Button> lightSeries = game.getLightSeries();
-
-  Serial.print("Randomly generated series: ");
+  
   for(int i = 0; i < lightSeries.size(); i++)
   {
-    Serial.print(lightSeries[i]);
-    Serial.print(", ");
+    Serial.print("Light up: ");
+    Serial.println(Game::buttonToString(lightSeries[i]));
     switch(lightSeries[i])
     {
       case RED: 
@@ -127,20 +228,37 @@ void displayColorSeries()
         break;
     }
     delay(600);
-    digitalWrite(bluePin, LOW);
-    digitalWrite(yellowPin, LOW);
-    digitalWrite(greenPin, LOW);
-    digitalWrite(redPin, LOW);
+    setAllLightsOn(false);
     delay(600);
+    
   }
-  Serial.println("");
-  
 
-
-  
+  Serial.println("User input...");
   mode = USER_INPUT; 
+  game.beginInput();
   delay(1);
 }
 
+void setAllLightsOn(bool on)
+{
+  digitalWrite(bluePin, on ? HIGH : LOW);
+  digitalWrite(yellowPin, on ? HIGH : LOW);
+  digitalWrite(greenPin, on ? HIGH : LOW);
+  digitalWrite(redPin, on ? HIGH : LOW);
+}
 
+
+void loop() 
+{
+  switch(mode)
+  {
+    case USER_INPUT: 
+      getUserInput();
+      break;
+    case DISPLAY_SERIES: 
+      displayColorSeries();
+      break;
+  }
+
+}
 
