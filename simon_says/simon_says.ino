@@ -3,7 +3,6 @@
 
 /*
  * TODO
- * - game not resetting after game over, it appears the lightSeries is not being regenerated
  */
 
 using namespace std;
@@ -35,27 +34,6 @@ Mode mode;
 
 
 Game game;
-
-void test()
-{
-  vector<Button> inp = game.getButtonInputSeries();
-  Serial.print("Input: [");
-  for(int i = 0; i < inp.size(); i++)
-  {
-    Serial.print(inp[i]);
-    Serial.print(", ");
-  }
-  Serial.println("]");
-  
-  vector<Button> lights = game.getLightSeries();
-  Serial.print("Lights: [");
-  for(int i = 0; i < lights.size(); i++)
-  {
-    Serial.print(lights[i]);
-    Serial.print(", ");
-  }
-  Serial.println("]");
-}
 
 void setup() 
 {
@@ -125,6 +103,7 @@ void getUserInput()
     //turn the LED light off after the user stops pressing the button
     digitalWrite(redPin, LOW);
     
+    //if the insert function returns false, this light that was pressed is incorrect
     if(!game.insertInput(RED))
     {
       gameOver();
@@ -142,6 +121,7 @@ void getUserInput()
     //turn the LED light off after the user stops pressing the button
     digitalWrite(greenPin, LOW);
     
+    //if the insert function returns false, this light that was pressed is incorrect
     if(!game.insertInput(GREEN))
     {
       gameOver();
@@ -159,6 +139,7 @@ void getUserInput()
     //turn the LED light off after the user stops pressing the button
     digitalWrite(yellowPin, LOW);
     
+    //if the insert function returns false, this light that was pressed is incorrect
     if(!game.insertInput(YELLOW))
     {
       gameOver();
@@ -177,6 +158,7 @@ void getUserInput()
     //turn the LED light off after the user stops pressing the button
     digitalWrite(bluePin, LOW);
     
+    //if the insert function returns false, this light that was pressed is incorrect
     if(!game.insertInput(BLUE))
     {
       gameOver();
@@ -185,7 +167,7 @@ void getUserInput()
 
   }
 
-  //TODO check if the input matches the current light series
+  //check if the input matches the current light series, if it does, display the success lights and switch to the next level
   if(game.isInputCorrect())
   {
     Serial.println("The input was correct!");
@@ -193,17 +175,16 @@ void getUserInput()
     mode = DISPLAY_SERIES;
     delay(500);
   }
-
-  //for now, lets assume the input is correct, light success button, and chnage state to DISPLAY_SERIES;
-  //displaySuccess();
   
   delay(1);
 }
 
+/**
+ * Display the randomly genereated series of lights (after adding one new random light to the series)
+ */
 void displayColorSeries()
 {
   Serial.println("Display...");
-  //TODO display the randomly generated series of lights
 
   game.nextLevel();
   vector<Button> lightSeries = game.getLightSeries();
